@@ -24,6 +24,8 @@
   License along with this program; if not, see <http://www.gnu.org/licenses/>.
   ******************************************************************************
  */
+var s_syntax_flash = 'Syntax: [spark cloud flash <<core-id>> <<source-file>>]';
+var s_syntax_name = 'Syntax: [spark cloud name <<core-id>> <<name-of-core>>]';
 
 var when = require('when');
 var sequence = require('when/sequence');
@@ -110,11 +112,13 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
     nameCore: function (coreid, name) {
         if (!coreid) {
             console.error("Please specify a coreid");
+            console.error(s_syntax_name);
             return;
         }
 
         if (!name) {
             console.error("Please specify a name");
+            console.error(s_syntax_name);
             return;
         }
 
@@ -129,11 +133,13 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
     flashCore: function (coreid, filePath) {
         if (!coreid) {
             console.error("Please specify a coreid");
+            console.error(s_syntax_flash);
             return;
         }
 
         if (!filePath) {
             console.error("Please specify a binary file, source file, or source directory");
+            console.error(s_syntax_flash);
             return;
         }
 
