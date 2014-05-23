@@ -13,6 +13,8 @@ Install
 
     npm install -g spark-cli
     spark cloud login
+    
+  For windows user, we have a installation tutorial in the community: https://community.spark.io/t/tutorial-spark-cli-on-windows/3112
 
 Upgrade
 =======
