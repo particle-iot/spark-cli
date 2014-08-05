@@ -11,7 +11,7 @@ Installing
   Next, open a command prompt or terminal, and install by typing:
 
 ```sh 
-$ npm install -g spark-cli
+$ sudo npm install -g spark-cli
 $ spark cloud login
 ```
 
