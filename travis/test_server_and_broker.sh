@@ -1,0 +1,2 @@
+cd js
+npm test

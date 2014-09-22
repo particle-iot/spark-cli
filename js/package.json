@@ -14,6 +14,9 @@
     "engines": {
         "node": "*"
     },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
     "dependencies": {
         "hogan.js": "~2.0.0",
         "moment": "*",

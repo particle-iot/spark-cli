@@ -1,0 +1,7 @@
+before_install:
+  - sudo apt-get update
+language: node_js
+script:
+  - ./travis/test_server_and_broker.sh
+node_js:
+  - '0.10'
