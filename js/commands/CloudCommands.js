@@ -407,7 +407,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
 
 
      getAllCoreAttributes: function (args) {
-        console.error("Checking with the cloud...");
+        console.error("Checking with the cloud...(" + settings.apiUrl + ")");
 
         var tmp = when.defer();
         var api = new ApiClient(settings.apiUrl, settings.access_token);
