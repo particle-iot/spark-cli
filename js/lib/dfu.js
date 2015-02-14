@@ -42,10 +42,10 @@ var that = module.exports = {
         '1d50:607f'
     ],
 
-    findCompatiableDFU: function () {
+    findCompatibleDFU: function () {
         var temp = when.defer();
 
-        var failTimer = utilities.timeoutGenerator("findCompatiableDFU timed out", temp, 5000);
+        var failTimer = utilities.timeoutGenerator("findCompatibleDFU timed out", temp, 6000);
         child_process.exec("dfu-util -l", function (error, stdout, stderr) {
             clearTimeout(failTimer);
 
@@ -94,6 +94,12 @@ var that = module.exports = {
         return that.readDfu(0, dest, "0x08005000", leave);
     },
 
+    isDfuUtilInstalled: function() {
+        var cmd = "dfu-util -l";
+        var installCheck = utilities.deferredChildProcess(cmd);
+        return utilities.replaceDfdResults(installCheck, "Installed", "dfu-util is not installed");
+    },
+
     readDfu: function (memoryInterface, destination, firmwareAddress, leave) {
         var prefix = that.getCommandPrefix();
         var leaveStr = (leave) ? ":leave" : "";
@@ -103,12 +109,22 @@ var that = module.exports = {
     },
 
     writeDfu: function (memoryInterface, binaryPath, firmwareAddress, leave) {
-        var prefix = that.getCommandPrefix();
+        //var prefix = that.getCommandPrefix();
         var leaveStr = (leave) ? ":leave" : "";
-        var cmd = prefix + ' -a ' + memoryInterface + ' -i 0 -s ' + firmwareAddress + leaveStr + ' -D ' + binaryPath;
-        that.checkBinaryAlignment(cmd);
+        //var cmd = ' -a ' + memoryInterface + ' -i 0 -s ' + firmwareAddress + leaveStr + ' -D ' + binaryPath;
+        that.checkBinaryAlignment("-D " + binaryPath);
 
-        return utilities.deferredChildProcess(cmd);
+        //more robust way to protect against weird escape sequences in arguments / filenames
+        var args = [
+            "-d", "1d50:607f",
+            "-a", memoryInterface,
+            "-i", "0",
+            "-s", firmwareAddress + leaveStr,
+            "-D", binaryPath
+        ];
+
+        //cmd = "/usr/local/bin/" + cmd;
+        return utilities.deferredSpawnProcess("dfu-util", args);
     },
 
 
@@ -155,7 +171,7 @@ var that = module.exports = {
 //        };
 //
 //        var promise = sequence([
-//            that.findCompatiableDFU,
+//            that.findCompatibleDFU,
 //            timing.helpers.waitHalfSecond,
 //            tryProgrammingOverUsb
 //        ]);

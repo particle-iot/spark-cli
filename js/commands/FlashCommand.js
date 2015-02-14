@@ -27,7 +27,6 @@
 var when = require('when');
 var sequence = require('when/sequence');
 var readline = require('readline');
-var fs = require('fs');
 var settings = require('../settings.js');
 var path = require('path');
 
@@ -36,6 +35,7 @@ var util = require('util');
 var BaseCommand = require("./BaseCommand.js");
 var fs = require('fs');
 var dfu = require('../lib/dfu.js');
+var utilities = require('../lib/utilities.js');
 
 var FlashCommand = function (cli, options) {
     FlashCommand.super_.call(this, cli, options);
@@ -50,23 +50,109 @@ FlashCommand.prototype = extend(BaseCommand.prototype, {
     description: "copies firmware and data to your core over usb",
 
     init: function () {
-        this.addOption("firmware", this.flashCore.bind(this), "Flashes a local firmware binary to your core over USB");
-        //this.addOption("list", this.listCores.bind(this));
+        //this.addAlias("firmware", this.flashDfu.bind(this), null);
+
+        this.addOption("firmware", this.flashDfu.bind(this), "Flashes a local firmware binary to your core over USB");
+        this.addOption("cloud", this.flashCloud.bind(this), "Flashes a binary to your core wirelessly ");
+
+        this.addOption("*", this.flashSwitch.bind(this));
         //this.addOption(null, this.helpCommand.bind(this));
     },
 
-    flashCore: function(firmware) {
-        if (!firmware || !fs.existsSync(firmware)) {
-            console.log("Please specify a firmware file to flash locally to your core ");
-            return -1;
+    checkArguments: function (args) {
+        this.options = this.options || {};
+
+        if (!this.options.knownApp) {
+            this.options.knownApp = utilities.tryParseArgs(args,
+                "--known",
+                "Please specify an app name for --known"
+            );
         }
+        if (!this.options.useCloud) {
+            this.options.useCloud = utilities.tryParseArgs(args,
+                "--cloud",
+               null
+            );
+        }
+        if (!this.options.useDfu) {
+            this.options.useDfu = utilities.tryParseArgs(args,
+                "--usb",
+               null
+            );
+        }
+        if (!this.options.useFactoryAddress) {
+            //assume DFU if doing factory
+            this.options.useFactoryAddress = utilities.tryParseArgs(args,
+                "--factory",
+               null
+            );
+        }
+    },
+
+
+    flashSwitch: function(coreid, firmware) {
+        if (!coreid && !firmware) {
+            var help = this.cli.getCommandModule("help");
+            return help.helpCommand(this.name);
+        }
+
+        //spark flash --usb some-firmware.bin
+        //spark flash --cloud core_name some-firmware.bin
+        //spark flash core_name some-firmware.bin
+
+        this.checkArguments(arguments);
+
+        var result;
+        if (this.options.useDfu || (coreid == "--usb") || (coreid == "--factory")) {
+            result = this.flashDfu(this.options.useDfu || this.options.useFactoryAddress);
+        }
+        else {
+            //we need to remove the "--cloud" argument so this other command will understand what's going on.
+            var args = utilities.copyArray(arguments);
+            if (this.options.useCloud) {
+                //trim
+
+                var idx = utilities.indexOf(args, "--cloud");
+                args.splice(idx, 1);
+            }
+
+            result = this.flashCloud.apply(this, args);
+        }
+
+        return result;
+    },
+
+    flashCloud: function(coreid, filename) {
+        var cloud = this.cli.getCommandModule("cloud");
+        return cloud.flashCore.apply(cloud, arguments);
+    },
+
+    flashDfu: function(firmware) {
+        if (!firmware || !fs.existsSync(firmware)) {
+            if (settings.knownApps[firmware]) {
+                firmware = settings.knownApps[firmware] ;
+            }
+            else {
+                console.log("Please specify a firmware file to flash locally to your core ");
+                return -1;
+            }
+        }
+
+        //TODO: detect if arguments contain something other than a .bin file
+
+        var useFactory = this.options.useFactoryAddress;
 
         var ready = sequence([
             function () {
-                return dfu.findCompatiableDFU();
+                return dfu.findCompatibleDFU();
             },
             function() {
-                return dfu.writeFirmware(firmware, true);
+                if (useFactory) {
+                    return dfu.writeFactoryReset(firmware, false);
+                }
+                else {
+                    return dfu.writeFirmware(firmware, true);
+                }
             }
         ]);
 

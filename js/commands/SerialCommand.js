@@ -8,25 +8,27 @@
  * @date    14-February-2014
  * @brief   Serial commands module
  ******************************************************************************
-  Copyright (c) 2014 Spark Labs, Inc.  All rights reserved.
+ Copyright (c) 2014 Spark Labs, Inc.  All rights reserved.
 
-  This program is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation, either
-  version 3 of the License, or (at your option) any later version.
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation, either
+ version 3 of the License, or (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public
-  License along with this program; if not, see <http://www.gnu.org/licenses/>.
-  ******************************************************************************
+ You should have received a copy of the GNU Lesser General Public
+ License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************
  */
 
 var when = require('when');
 var sequence = require('when/sequence');
+var pipeline = require('when/pipeline');
+
 var readline = require('readline');
 var SerialPortLib = require("serialport");
 var SerialPort = SerialPortLib.SerialPort;
@@ -35,6 +37,9 @@ var extend = require('xtend');
 var util = require('util');
 var BaseCommand = require("./BaseCommand.js");
 var prompts = require('../lib/prompts.js');
+var utilities = require('../lib/utilities.js');
+var SerialBoredParser = require('../lib/SerialBoredParser.js');
+var WifiUtilities = require("../lib/WifiUtilities.js");
 
 var SerialCommand = function (cli, options) {
     SerialCommand.super_.call(this, cli, options);
@@ -69,14 +74,38 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
         });
     },
 
+
+    checkArguments: function (args) {
+        this.options = this.options || {};
+
+        if (!this.options.follow) {
+            this.options.follow = utilities.tryParseArgs(args,
+                "--follow",
+               null
+            );
+        }
+
+       if (!this.options.scan) {
+            this.options.scan = utilities.tryParseArgs(args,
+                "--scan",
+               null
+            );
+        }
+    },
+
     monitorPort: function (comPort) {
-        this.whatSerialPortDidYouMean(comPort, function(port) {
+        var handlePortFn = function (port) {
+            if (!port) {
+                console.error("No serial port identified");
+                return;
+            }
+
             console.log("Opening serial monitor for com port: \"" + port + "\"");
 
             //TODO: listen for interrupts, close gracefully?
             var serialPort = new SerialPort(port, {
                 baudrate: 9600
-            });
+            }, false);
             serialPort.on('data', function (data) {
                 process.stdout.write(data.toString());
             });
@@ -86,23 +115,50 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
                     console.error("Serial problems, please reconnect the core.");
                 }
             });
-        });
+        };
+
+        this.checkArguments(arguments);
+
+        if (this.options.follow) {
+            //catch the serial port dying, and keep retrying forever
+            //TODO: needs serialPort error / close event / deferred
+        }
+
+        this.whatSerialPortDidYouMean(comPort, true, handlePortFn);
     },
 
 
     findCores: function (callback) {
         var cores = [];
         SerialPortLib.list(function (err, ports) {
+
+            //grab anything that self-reports as a core
             for (var i = 0; i < ports.length; i++) {
                 var port = ports[i];
 
                 //not trying to be secure here, just trying to be helpful.
-                if ( (port.manufacturer && port.manufacturer.indexOf("Spark") >= 0) ||
-                    (port.pnpId && port.pnpId.indexOf("Spark_Core") >= 0)
-                ) {
+                if ((port.manufacturer && port.manufacturer.indexOf("Spark") >= 0) ||
+                    (port.pnpId && port.pnpId.indexOf("Spark_Core") >= 0) ||
+                     port.pnpId && port.pnpId.indexOf("VID_1D50") >= 0) {
                     cores.push(port);
                 }
             }
+
+            //if I didn't find anything, grab any 'ttyACM's
+            if (cores.length == 0) {
+                for (var i = 0; i < ports.length; i++) {
+                    var port = ports[i];
+
+                    //if it doesn't have a manufacturer or pnpId set, but it's a ttyACM port, then lets grab it.
+                    if (port.comName.indexOf('/dev/ttyACM') == 0) {
+                        cores.push(port);
+                    }
+                    else if (port.comName.indexOf('/dev/cuaU') == 0) {
+                        cores.push(port);
+                    }
+                }
+            }
+
             callback(cores);
         });
     },
@@ -115,99 +171,250 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
     },
 
 
+    /**
+     * Check to see if the core is in listening mode, try to get the code ID via serial
+     * @param comPort
+     * @returns {promise|*|Promise|promise}
+     */
     identifyCore: function (comPort) {
+        var tmp = when.defer();
+
+        var failTimer = setTimeout(function() {
+            tmp.reject("Timed out");
+        }, 5000);
+
         var that = this;
-        this.whatSerialPortDidYouMean(comPort, function (port) {
-            that.askForCoreID(port);
+        this.whatSerialPortDidYouMean(comPort, true, function (port) {
+            if (!port) {
+                tmp.reject("No serial port identified");
+                return;
+            }
+
+            utilities.pipeDeferred(that.askForCoreID(port), tmp);
         });
+
+        when (tmp.promise).ensure(function() {
+            clearTimeout(failTimer);
+        });
+
+        return tmp.promise;
     },
-    configureWifi: function (comPort) {
+    configureWifi: function (comPort, dontExit, scan ) {
+        var tmp = when.defer();
         var that = this;
-        this.whatSerialPortDidYouMean(comPort, function (port) {
+
+        this.checkArguments(arguments);
+
+        this.whatSerialPortDidYouMean(comPort, true, function (port) {
+            if (!port) {
+                tmp.reject("No serial port identified");
+                return;
+            }
+
+            var ssid, password, security;
 
             //ask for ssid, pass, security type
-            var gotCreds = sequence([
-                function() { return prompts.promptDfd("SSID:\t"); },
-                function() { return prompts.promptDfd("Pass:\t"); },
-                function() { return prompts.promptDfd("Security 0=unsecured, 1=WEP, 2=WPA, 3=WPA2:\t"); }
+            var gotCreds = pipeline([
+                function() {
+                    //if arg scan, then
+
+                    if (that.options.scan || scan) {
+                        return WifiUtilities.scanAndListAPs();
+                    }
+                    else {
+                        return when.resolve();
+                    }
+                },
+                function() {
+                    return prompts.promptDfd("SSID: ");
+                },
+                function (arg) {
+                    ssid = arg;
+                    return prompts.promptDfd("Security 0=unsecured, 1=WEP, 2=WPA, 3=WPA2: ");
+                },
+                function (arg) {
+                    security = arg;
+                    if (security == "0") {
+                        return when.resolve();
+                    }
+                    return prompts.promptDfd("Wifi Password: ");
+                },
+                function (arg) {
+                    password = arg;
+                    return when.resolve();
+                }
             ]);
 
-            when(gotCreds).then(function(creds) {
-                that.serialWifiConfig(port, creds[0], creds[1], creds[2]);
+            when(gotCreds).then(function () {
+                var wifiDone = that.serialWifiConfig(port, ssid, password, security);
+
+                utilities.pipeDeferred(wifiDone, tmp);
+
+                //TODO: fix this, this is awkward
+                if (!dontExit) {
+                    when(wifiDone).ensure(function () {
+                        setTimeout(function () {
+                            process.exit(0);
+                        }, 1250);
+                    })
+                }
             });
         });
+
+        return tmp.promise;
+    },
+
+    //spark firmware version 1:
+
+    //SSID: Test
+    //Password: Test
+    //Thanks! Wait about 7 seconds while I save those credentials...
+
+
+    /**
+     * wait for a prompt, optionally write back and answer, and optionally time out if the prompt doesn't appear in time.
+     * @param prompt
+     * @param answer
+     */
+    serialPromptDfd: function (serialPort, prompt, answer, timeout, alwaysResolve) {
+        //console.log("waiting on " + prompt + " answer will be " + answer);
+
+        var dfd = when.defer(),
+            failTimer,
+            showTraffic = true;
+
+        var writeAndDrain = function (data, callback) {
+            serialPort.write(data, function () {
+                serialPort.drain(callback);
+            });
+        };
+
+        if (timeout) {
+            failTimer = setTimeout(function () {
+                if (showTraffic) { console.log("timed out on " + prompt); }
+                if (alwaysResolve) {
+                    dfd.resolve(null);
+                }
+                else {
+                    dfd.reject("Serial prompt timed out - Please try restarting your core");
+                }
+            }, timeout);
+        }
+
+
+        if (prompt) {
+            var onMessage = function (data) {
+                data = data.toString();
+
+                if (showTraffic) { console.log("Serial said: " + data);}
+                if (data && data.indexOf(prompt) >= 0) {
+                    if (answer) {
+                        serialPort.flush(function() {});
+
+                        writeAndDrain(answer, function () {
+                            if (showTraffic) { console.log("I said: " + answer);}
+                            //serialPort.pause();     //lets not miss anything
+                            dfd.resolve(true);
+                        });
+                    }
+                    else {
+                        dfd.resolve(true);
+                    }
+                }
+            };
+
+            serialPort.on('data', onMessage);
+            //serialPort.resume();
+
+            when(dfd.promise).ensure(function () {
+                clearTimeout(failTimer);
+                serialPort.removeListener('data', onMessage);
+            });
+        }
+        else if (answer) {
+            clearTimeout(failTimer);
+
+            if (showTraffic) { console.log("I said: " + answer);}
+            writeAndDrain(answer, function () {
+                //serialPort.pause();     //lets not miss anything
+                dfd.resolve(true);
+            });
+        }
+        return dfd.promise;
     },
 
 
-    serialWifiConfig: function (comPort, ssid, pass, secType, failDelay) {
-        var dfd = when.defer();
-        failDelay = failDelay || 5000;
-
-        var failTimer = setTimeout(function () {
-            dfd.reject("Serial Timed out - Please try restarting your core");
-        }, failDelay);
+    serialWifiConfig: function (comPort, ssid, password, securityType, failDelay) {
+        if (!comPort) {
+            return when.reject("No serial port available");
+        }
 
         console.log("Attempting to configure wifi on " + comPort);
 
         var serialPort = this.serialPort || new SerialPort(comPort, {
-            baudrate: 9600
+            baudrate: 9600,
+            parser: SerialBoredParser.MakeParser(250)
+        }, false);
+
+        serialPort.on('error', function () {
+            //yeah, don't care.
+            console.error("Serial error:", arguments);
         });
 
-        //TODO: correct interaction for unsecured networks
-        //TODO: drop the pre-prompt creds process entirely when we have the built in serial terminal
+        var that = this,
+            wifiDone = when.defer();
 
-        var writeChunkIndex = 0;
-        var writeChunks = [
-            "w",
-            ssid + "\n",
-            secType + "\n",
-            pass + "\n",
-            "\n"
-        ];
-
-        var writeNextChunk = function () {
-            if (writeChunkIndex < writeChunks.length) {
-                serialPort.write(writeChunks[writeChunkIndex], function () {});
-                writeChunkIndex++;
-                return true;
-            }
-            return false;
-        };
-
-
-        //keep listening for data until we haven't received anything for...
-        var boredDelay = 250,
-            boredTimer,
-            chunks = [];
-
-        var whenBored = function () {
-            var data = chunks.join("");
-            chunks = [];
-
-            if (!writeNextChunk()) {
-                if (data.indexOf("Spark <3 you!") >= 0) {
-                    console.log("Configured: Spark <3 you!");
-                    dfd.resolve(data);
-                }
-            }
-        };
-
-        serialPort.on('data', function (data) {
-            clearTimeout(failTimer);
-            clearTimeout(boredTimer);
-            chunks.push(data);
-            boredTimer = setTimeout(whenBored, boredDelay);
-        });
-        when(dfd.promise).ensure(function () {
-            serialPort.removeAllListeners("open");
-            serialPort.removeAllListeners("data");
-        });
         serialPort.open(function () {
-            writeNextChunk();
+            var configDone = pipeline([
+                function () {
+                    return that.serialPromptDfd(serialPort, null, "w", 5000, true);
+                },
+                function (result) {
+                    if (!result) {
+                        return that.serialPromptDfd(serialPort, null, "w", 5000, true);
+                    }
+                    else {
+                        return when.resolve();
+                    }
+                },
+                function () {
+                    return that.serialPromptDfd(serialPort, "SSID:", ssid + "\n", 5000, false);
+                },
+                function () {
+                    return that.serialPromptDfd(serialPort, "Security 0=unsecured, 1=WEP, 2=WPA, 3=WPA2:", securityType + "\n", 1500, true);
+                },
+                function (result) {
+                    var passPrompt = "Password:";
+                    if (!result) {
+                        //no security prompt, must have had pass prompt.
+
+                        //normally we would wait for the password prompt, but the 'security' line will have received the
+                        //prompt instead, so lets assume we're good since we already got the ssid prompt, and just pipe
+                        //the pass.
+
+                        if (securityType == "0") {
+                            //we didn't have a password, so just hit return
+                            serialPort.write("\n");
+
+                        }
+                        passPrompt = null;
+                    }
+
+                    if (!passPrompt || !password || (password == "")) {
+                        return when.resolve();
+                    }
+
+                    return that.serialPromptDfd(serialPort, passPrompt, password + "\n", 5000);
+                },
+                function () {
+                    return that.serialPromptDfd(serialPort, "Spark <3 you!", null, 15000);
+                }
+            ]);
+            utilities.pipeDeferred(configDone, wifiDone);
         });
 
 
-        dfd.promise.then(
+        when(wifiDone.promise).then(
             function () {
                 console.log("Done!  Your core should now restart.");
             },
@@ -215,22 +422,22 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
                 console.error("Something went wrong " + err);
             });
 
-        when(dfd.promise).ensure(function () {
+        when(wifiDone.promise).ensure(function () {
             serialPort.close();
-
-            setTimeout(function() {
-                //exit!
-                process.exit(0);
-            }, 2500);
         });
 
-        return dfd.promise;
+        return wifiDone.promise;
+
+        //TODO: correct interaction for unsecured networks
+        //TODO: drop the pre-prompt creds process entirely when we have the built in serial terminal
     },
 
 
-
-
     askForCoreID: function (comPort) {
+        if (!comPort) {
+            return when.reject("askForCoreID - no serial port provided");
+        }
+
         var failDelay = 5000;
 
         var dfd = when.defer();
@@ -242,21 +449,24 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
                 chunks = [];
 
             var serialPort = new SerialPort(comPort, {
-                baudrate: 9600
-            });
+                baudrate: 9600,
+                parser: SerialBoredParser.MakeParser(250)
+            }, false);
             this.serialPort = serialPort;
 
 
             var whenBored = function () {
                 var data = chunks.join("");
                 var prefix = "Your core id is ";
-                data = data.replace(prefix, "").trim();
-                dfd.resolve(data);
+                if (data.indexOf(prefix) >= 0) {
+                    data = data.replace(prefix, "").trim();
+                    dfd.resolve(data);
+                }
             };
 
 
             var failTimer = setTimeout(function () {
-                dfd.reject("Serial Timed out");
+                dfd.reject("Serial timed out");
             }, failDelay);
 
 
@@ -275,7 +485,8 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
                     dfd.reject("Serial problems, please reconnect the core.");
                 }
                 else {
-                    serialPort.write("i", function (err, results) { });
+                    serialPort.write("i", function (err, results) {
+                    });
                 }
             });
 
@@ -301,10 +512,13 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
         when(dfd.promise).ensure(function () {
             serialPort.close();
         });
+        return dfd.promise;
     },
 
 
-    whatSerialPortDidYouMean: function(comPort, callback) {
+    whatSerialPortDidYouMean: function (comPort, shouldPrompt, callback) {
+        var that = this;
+
         this.findCores(function (cores) {
             if (!comPort) {
                 //they didn't give us anything.
@@ -335,12 +549,28 @@ SerialCommand.prototype = extend(BaseCommand.prototype, {
                 }
             }
 
-            console.log("Which core did you mean?");
-            console.log("Found " + cores.length + " core(s) connected via serial: ");
-            for (var i = 0; i < cores.length; i++) {
-                console.log((i + 1) + ":\t" + cores[i].comName);
+            if (cores.length > 0) {
+                console.log("Which core did you mean?");
+                console.log("Found " + cores.length + " core(s) connected via serial: ");
+                for (var i = 0; i < cores.length; i++) {
+                    console.log((i + 1) + ":\t" + cores[i].comName);
+                }
+                console.log("");
             }
-            console.log("");
+            else {
+                console.log("I didn't find any cores available via serial");
+                if (shouldPrompt) {
+                    callback(null);
+                }
+                return;
+            }
+
+            if (shouldPrompt && (cores.length > 0)) {
+                //ask then what we meant, and try again...
+                when(prompts.promptDfd(": ")).then(function (value) {
+                    that.whatSerialPortDidYouMean(value, true, callback);
+                });
+            }
         });
     },
 

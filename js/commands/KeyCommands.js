@@ -34,8 +34,9 @@ var utilities = require('../lib/utilities.js');
 var BaseCommand = require("./BaseCommand.js");
 var ApiClient = require('../lib/ApiClient.js');
 var moment = require('moment');
-var ursa = require('ursa');
+//var ursa = require('ursa');
 var fs = require('fs');
+var path = require('path');
 var dfu = require('../lib/dfu.js');
 
 var KeyCommands = function (cli, options) {
@@ -70,14 +71,23 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
     checkArguments: function (args) {
         this.options = this.options || {};
 
-//        if (!this.options.showTime) {
-//            this.options.showTime = (utilities.contains(args, "--time"));
-//        }
+        if (!this.options.force) {
+            this.options.force = utilities.tryParseArgs(args,
+                "--force",
+                null
+            );
+        }
 
     },
 
     makeKeyOpenSSL: function (filename) {
         filename = utilities.filenameNoExt(filename);
+
+        if (this.options.force) {
+            utilities.tryDelete(filename + ".pem");
+            utilities.tryDelete(filename + ".pub.pem");
+            utilities.tryDelete(filename + ".der");
+        }
 
         return sequence([
             function () {
@@ -92,15 +102,15 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
         ]);
     },
 
-    makeKeyUrsa: function (filename) {
-        var key = ursa.generatePrivateKey(1024);
-        fs.writeFileSync(filename + ".pem", key.toPrivatePem('binary'));
-        fs.writeFileSync(filename + ".pub.pem", key.toPublicPem('binary'));
-
-        //Hmm... OpenSSL is an installation requirement for URSA anyway, so maybe this fork is totally unnecessary...
-        //in any case, it doesn't look like ursa can do this type conversion, so lets use openssl.
-        return utilities.deferredChildProcess("openssl rsa -in " + filename + ".pem -outform DER -out " + filename + ".der");
-    },
+//    makeKeyUrsa: function (filename) {
+//        var key = ursa.generatePrivateKey(1024);
+//        fs.writeFileSync(filename + ".pem", key.toPrivatePem('binary'));
+//        fs.writeFileSync(filename + ".pub.pem", key.toPublicPem('binary'));
+//
+//        //Hmm... OpenSSL is an installation requirement for URSA anyway, so maybe this fork is totally unnecessary...
+//        //in any case, it doesn't look like ursa can do this type conversion, so lets use openssl.
+//        return utilities.deferredChildProcess("openssl rsa -in " + filename + ".pem -outform DER -out " + filename + ".der");
+//    },
 
 
     makeNewKey: function (filename) {
@@ -108,13 +118,7 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
             filename = "core";
         }
 
-        var keyReady;
-        if (settings.useOpenSSL) {
-            keyReady = this.makeKeyOpenSSL(filename);
-        }
-        else {
-            keyReady = this.makeKeyUrsa(filename);
-        }
+        var keyReady = this.makeKeyOpenSSL(filename);
 
         when(keyReady).then(function () {
             console.log("New Key Created!");
@@ -126,10 +130,11 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
     },
 
     writeKeyToCore: function (filename, leave) {
+        this.checkArguments(arguments);
 
         if (!filename) {
-            console.error("Please provide a filename to store this key.");
-            return when.reject("Please provide a filename to store this key.");
+            console.error("Please provide a DER format key filename to load to your core");
+            return when.reject("Please provide a DER format key filename to load to your core");
         }
 
         filename = utilities.filenameNoExt(filename) + ".der";
@@ -142,14 +147,20 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
         var that = this;
 
         var ready = sequence([
+            function() {
+                return dfu.isDfuUtilInstalled();
+            },
             function () {
                 //make sure our core is online and in dfu mode
-                return dfu.findCompatiableDFU();
+                return dfu.findCompatibleDFU();
             },
             //backup their existing key so they don't lock themselves out.
             function() {
-                //TODO: better process for making backup filename.
-                return that.saveKeyFromCore("pre_" + filename);
+                var prefilename = path.join(
+                        path.dirname(filename),
+                    "pre_" + path.basename(filename)
+                );
+                return that.saveKeyFromCore(prefilename);
             },
             function () {
                 return dfu.writePrivateKey(filename, leave);
@@ -159,7 +170,7 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
         when(ready).then(function () {
             console.log("Saved!");
         }, function (err) {
-            console.error("Error saving key... " + err);
+            console.error("Error saving key to core... " + err);
         });
 
         return ready;
@@ -174,29 +185,42 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
         }
 
         //TODO: check / ensure ".der" extension
-        //TODO: check for --force flag
+        this.checkArguments(arguments);
 
-        if (fs.existsSync(filename)) {
+        if ((!this.options.force) && (fs.existsSync(filename))) {
             console.error("This file already exists, please specify a different file, or use the --force flag.");
             return when.reject("This file already exists, please specify a different file, or use the --force flag.");
+        }
+        else if (fs.existsSync(filename)) {
+            utilities.tryDelete(filename);
         }
 
         //find dfu devices, make sure a core is connected
         //pull the key down and save it there
+        var that = this;
 
         var ready = sequence([
-            function () {
-                return dfu.findCompatiableDFU();
+            function() {
+                return dfu.isDfuUtilInstalled();
             },
             function () {
+                return dfu.findCompatibleDFU();
+            },
+            function () {
+                //if (that.options.force) { utilities.tryDelete(filename); }
                 return dfu.readPrivateKey(filename, false);
+            },
+            function () {
+                var pubPemFilename = utilities.filenameNoExt(filename) + ".pub.pem";
+                if (that.options.force) { utilities.tryDelete(pubPemFilename); }
+                return utilities.deferredChildProcess("openssl rsa -in " + filename + " -inform DER -pubout  -out " + pubPemFilename);
             }
         ]);
 
         when(ready).then(function () {
             console.log("Saved!");
         }, function (err) {
-            console.error("Error saving key... " + err);
+            console.error("Error saving key from core... " + err);
         });
 
         return ready;
@@ -223,7 +247,7 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
 
         var api = new ApiClient(settings.apiUrl, settings.access_token);
         if (!api.ready()) {
-            return;
+            return when.reject("Not logged in");
         }
 
         var keyStr = fs.readFileSync(filename).toString();
@@ -231,15 +255,27 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
     },
 
     keyDoctor: function (coreid) {
-        if (!coreid) {
+        if (!coreid || (coreid == "")) {
             console.log("Please provide your core id");
             return 0;
         }
 
+        this.checkArguments(arguments);
+
+        if (coreid.length < 24) {
+            console.log("***************************************************************");
+            console.log("   Warning! - core id was shorter than 24 characters - did you use something other than an id?");
+            console.log("   use spark identify to find your core id");
+            console.log("***************************************************************");
+        }
+
         var that = this;
         var allDone = sequence([
+            function() {
+                return dfu.isDfuUtilInstalled();
+            },
             function () {
-                return dfu.findCompatiableDFU();
+                return dfu.findCompatibleDFU();
             },
             function() {
                 return that.makeNewKey(coreid + "_new");
@@ -263,13 +299,103 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
             });
     },
 
-    writeServerPublicKey: function (filename) {
+    writeServerPublicKey: function (filename, ipOrDomain) {
         if (!filename || (!fs.existsSync(filename))) {
             console.log("Please specify a server key in DER format.");
             return -1;
         }
 
-        var allDone = dfu.writeServerKey(filename, false);
+        if (utilities.getFilenameExt(filename).toLowerCase() != ".der") {
+            var derFile = utilities.filenameNoExt(filename) + ".der";
+
+            if (!fs.existsSync(derFile)) {
+                var that = this;
+                console.log("Creating DER format file");
+                var derFilePromise = utilities.deferredChildProcess("openssl rsa -in  " + filename + " -pubin -pubout -outform DER -out " + derFile);
+                when(derFilePromise).then(function() {
+                    that.writeServerPublicKey(derFile, ipOrDomain);
+                }, function(err) {
+                    console.error("Error creating a DER formatted version of that key.  Make sure you specified the public key: " + err);
+                });
+
+                return;
+            }
+            else {
+                filename = derFile;
+            }
+        }
+
+        if (ipOrDomain == "mine") {
+            var ips = utilities.getIPAddresses();
+            if (ips && (ips.length == 1)) {
+                ipOrDomain = ips[0];
+            }
+            else if (ips.length > 0) {
+                console.log("Please specify an ip address: " + ips.join("\n"));
+                return;
+            }
+        }
+
+
+        if (ipOrDomain) {
+            var isIpAddress = /^[0-9.]*$/.test(ipOrDomain);
+
+            var file_with_address = utilities.filenameNoExt(filename) + utilities.replaceAll(ipOrDomain, ".", "_") + ".der";
+            if (!fs.existsSync(file_with_address)) {
+                // create a version of this key that points to a particular server or domain
+                var addressBuf = new Buffer(ipOrDomain.length + 2);
+                addressBuf[0] = (isIpAddress) ? 0 : 1;
+                addressBuf[1] = (isIpAddress) ? 4 : ipOrDomain.length;
+
+                if (isIpAddress) {
+                    var parts = ipOrDomain.split('.').map(function (obj) {
+                        return parseInt(obj);
+                    });
+                    addressBuf[2] = parts[0];
+                    addressBuf[3] = parts[1];
+                    addressBuf[4] = parts[2];
+                    addressBuf[5] = parts[3];
+                }
+                else {
+                    addressBuf.write(ipOrDomain, 2);
+                }
+
+                // To generate a file like this, just add a type-length-value (TLV) encoded IP or domain beginning 384 bytes into the file—on external flash the address begins at 0x1180.
+                // Everything between the end of the key and the beginning of the address should be 0xFF.
+                // The first byte representing "type" is 0x00 for 4-byte IP address or 0x01 for domain name—anything else is considered invalid and uses the fallback domain.
+                // The second byte is 0x04 for an IP address or the length of the string for a domain name.
+                // The remaining bytes are the IP or domain name. If the length of the domain name is odd, add a zero byte to get the file length to be even as usual.
+
+
+                var buf = new Buffer(1024);
+
+                //copy in the key
+                var fileBuf = fs.readFileSync(filename);
+                fileBuf.copy(buf, 0, 0, fileBuf.length);
+
+                //fill the rest with "FF"
+                buf.fill(255, fileBuf.length);
+
+                addressBuf.copy(buf, 384, 0, addressBuf.length);
+
+                //console.log("address chunk is now: " + addressBuf.toString('hex'));
+                //console.log("Key chunk is now: " + buf.toString('hex'));
+
+                fs.writeFileSync(file_with_address, buf);
+            }
+            filename = file_with_address;
+        }
+
+
+        var allDone = sequence([
+            function() {
+                return dfu.isDfuUtilInstalled();
+            },
+            function() {
+                return dfu.writeServerKey(filename, false);
+            }
+        ]);
+
         when(allDone).then(
             function () {
                 console.log("Okay!  New keys in place, your core will not restart.");
