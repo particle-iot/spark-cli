@@ -116,7 +116,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
     removeCore: function (coreid) {
         if (!coreid) {
             console.error("Please specify a coreid");
-            return;
+            return when.reject()
         }
 
         var api = new ApiClient(settings.apiUrl, settings.access_token);
@@ -144,7 +144,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
     nameCore: function (coreid, name) {
         if (!coreid) {
             console.error("Please specify a coreid");
-            return;
+            return when.reject();
         }
 
         if (!name) {
@@ -164,12 +164,12 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
     flashCore: function (coreid, filePath) {
         if (!coreid) {
             console.error("Please specify a coreid");
-            return -1;
+            return when.reject();
         }
 
         if (!filePath) {
             console.error("Please specify a binary file, source file, or source directory, or known app");
-            return -1;
+            return when.reject();
         }
 
         var files = null;
@@ -180,7 +180,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
             }
             else {
                 console.error("I couldn't find that: " + filePath);
-                return -1;
+                return when.reject();
             }
         }
 
@@ -252,7 +252,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
         var filePath = args[0];
         if (!fs.existsSync(filePath)) {
             console.error("I couldn't find that: " + filePath);
-            return;
+            return process.exit(1);
         }
 
         this.checkArguments(arguments);
@@ -364,7 +364,7 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
             },
             function (err) {
                 console.error("Error logging in " + err);
-                process.exit(-1);
+                process.exit(1);
             });
     },
     logout: function (dontExit) {
@@ -603,11 +603,10 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
 
         if (fs.existsSync(includesFile)) {
             //grab and process all the files in the include file.
-            //includes = utilities.fixRelativePaths(dirname,
-                utilities.trimBlankLinesAndComments(
-                    utilities.readAndTrimLines(includesFile)
-                );
-            //);
+
+            includes = utilities.trimBlankLinesAndComments(
+                utilities.readAndTrimLines(includesFile)
+            );
         }
 
         var files = utilities.globList(dirname, includes);

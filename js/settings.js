@@ -64,6 +64,7 @@ var settings = {
     knownApps: {
         "deep_update_2014_06": "binaries/deep_update_2014_06.bin",
         "cc3000": "binaries/cc3000-patch-programmer.bin",
+        "cc3000_1_14": "binaries/cc3000-patch-programmer_1_14.bin",
         "tinker": "binaries/spark_tinker.bin",
         "voodoo": "binaries/voodoospark.bin"
     },
@@ -149,7 +150,7 @@ settings.switchProfile = function(profileName) {
     var data = {
         name: profileName
     };
-    fs.writeFileSync(proFile, JSON.stringify(data, null, 2));
+    fs.writeFileSync(proFile, JSON.stringify(data, null, 2), { mode: '600' });
 };
 
 settings.override = function (profile, key, value) {
@@ -177,7 +178,7 @@ settings.override = function (profile, key, value) {
 
     try {
         var filename = settings.findOverridesFile(profile);
-        fs.writeFileSync(filename, JSON.stringify(settings.overrides, null, 2));
+        fs.writeFileSync(filename, JSON.stringify(settings.overrides, null, 2), { mode: '600' });
     }
     catch (ex) {
         console.error('There was an error writing ' + settings.overrides + ': ', ex);

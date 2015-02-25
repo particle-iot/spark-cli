@@ -1,7 +1,7 @@
 {
   "name": "spark-cli",
   "description": "Simple Node commandline application for working with your Spark Cores and using the Spark Cloud",
-  "version": "0.4.92",
+  "version": "0.4.94",
   "author": "David Middlecamp",
   "repository": {
     "type": "git",
@@ -19,7 +19,7 @@
     "hogan.js": "~2.0.0",
     "moment": "*",
     "request": "2.46.0",
-    "serialport": "1.4.5",
+    "serialport": "1.5.0",
     "when": "*",
     "xtend": "*",
     "node-wifiscanner": "*"
