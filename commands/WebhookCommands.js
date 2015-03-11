@@ -92,7 +92,7 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
         this.addOption("create", this.createHook.bind(this), "Creates a postback to the given url when your event is sent");
         this.addOption("list", this.listHooks.bind(this), "Show your current Webhooks");
         this.addOption("delete", this.deleteHook.bind(this), "Deletes a Webhook");
-		
+
 	    this.addOption("POST", this.createPOSTHook.bind(this), "Create a new POST request hook");
         this.addOption("GET", this.createGETHook.bind(this), "Create a new GET request hook");
     },
@@ -148,7 +148,7 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
         }
 
         api.createWebhook(eventName, url, coreID,
-            data.requestType, data.headers, data.json, data.query, data.auth, data.mydevices
+            data.requestType, data.headers, data.json, data.form, data.query, data.auth, data.mydevices
         );
         return 0;
     },
