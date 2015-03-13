@@ -363,7 +363,6 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
 				}, 1250);
 			},
 			function (err) {
-				console.error("Error logging in " + err);
 				process.exit(1);
 			});
 	},
