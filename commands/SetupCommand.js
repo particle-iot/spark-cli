@@ -105,7 +105,8 @@ SetupCommand.prototype = extend(BaseCommand.prototype, {
 			function () {
 				if (settings.access_token) {
 					var inAs = (settings.username) ? " as " + settings.username : "";
-					var line = "You are already logged in" + inAs + "\nDo you want to switch accounts? (y/N): ";
+					console.log("You are already logged in" + inAs);
+					var line = "Do you want to switch accounts? (y/N): ";
 					return prompts.askYesNoQuestion(line, true);
 				}
 				else {
