@@ -521,3 +521,31 @@ Current profile: spark
 Using API: https://api.spark.io
 Access token: e671fadd500a8a3921bb78c8d0400d7ba450a847
 ```
+
+###spark webhook
+
+Registers your webhook with the Spark Cloud. Creates a postback to the given url when your event is sent.
+
+```sh
+$ spark webhook list
+$ spark webhook delete WEBHOOK_ID
+$ spark webhook create example.json #run this command in the directory containing example.json
+$ spark webhook GET <your_event_name> http://<website.you.are.trying.to.contact
+```
+
+For `$ spark webhook GET <your_event_name> http://<website.you.are.trying.to.contact`, you can retrieve the response using:
+
+```sh
+void setup(){
+Spark.subscribe("hook-response/<event_name>", handlerFunction, MY_DEVICES);
+}
+
+void handlerFunction(const char *name, const char *data) {
+  // Important note!  -- Right now the response comes in 512 byte chunks.  
+  // This code assumes we're getting the response in large chunks, and this
+  // assumption breaks down if a line happens to be split across response chunks
+  
+  process the data received here....
+}
+```
+More examples and information about **webhooks** can be found here: http://docs.spark.io/webhooks/
