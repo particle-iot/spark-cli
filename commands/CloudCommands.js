@@ -562,8 +562,8 @@ CloudCommand.prototype = extend(BaseCommand.prototype, {
 					var numVars = utilities.countHashItems(core.variables);
 					var numFuncs = utilities.countHashItems(core.functions);
 
-					var status = core.name + " (" + core.id + ") is ";
-					status += (core.connected) ? "online" : "offline";
+					var status = (core.connected) ? "online " : "offline";
+					status += " - " + core.name + " (" + core.id + ")";
 					lines.push(status);
 
 					formatVariables(core.variables, lines);
