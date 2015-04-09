@@ -64,7 +64,8 @@ AccessTokenCommands.prototype = extend(BaseCommand.prototype, {
 			return sequence([
 				function () { return settings.username },
 				function () {
-					return prompts.passPromptDfd("Please reenter your password:  ");
+					console.log("Using account: " + settings.username);
+					return prompts.passPromptDfd("Please re-enter your password:  ");
 				}
 			]);
 		} else {
