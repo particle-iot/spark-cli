@@ -209,12 +209,13 @@ KeyCommands.prototype = extend(BaseCommand.prototype, {
 			},
 			function () {
 				//if (that.options.force) { utilities.tryDelete(filename); }
-				return dfu.readPrivateKey(filename, false);
+				return dfu.readPrivateKey(utilities.filenameNoExt(filename) + ".der", false);
 			},
 			function () {
 				var pubPemFilename = utilities.filenameNoExt(filename) + ".pub.pem";
+				var derFilename = utilities.filenameNoExt(filename) + ".der"
 				if (that.options.force) { utilities.tryDelete(pubPemFilename); }
-				return utilities.deferredChildProcess("openssl rsa -in " + filename + " -inform DER -pubout  -out " + pubPemFilename);
+				return utilities.deferredChildProcess("openssl rsa -in " + derFilename + " -inform DER -pubout  -out " + pubPemFilename);
 			}
 		]);
 
