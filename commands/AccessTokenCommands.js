@@ -69,6 +69,7 @@ AccessTokenCommands.prototype = extend(BaseCommand.prototype, {
 				}
 			]);
 		} else {
+			console.log("Seems like you have not logged in...Let's do that!");
 			return prompts.getCredentials();
 		}
 	},
