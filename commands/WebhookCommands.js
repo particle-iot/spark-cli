@@ -105,13 +105,13 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
         return this.createHook(eventName, url, coreID, "GET");
     },
 
-    createHook: function (eventName, url, coreID) {
+    createHook: function (eventName, url, coreID, requestType) {
         var api = new ApiClient(settings.apiUrl, settings.access_token);
         if (!api.ready()) {
             return -1;
         }
 
-        if (!eventName && !url && !coreID) {
+        if (!eventName && !url && !coreID && !requestType) {
             var help = this.cli.getCommandModule("help");
             return help.helpCommand(this.name, "create");
         }
@@ -147,9 +147,15 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
             return -1;
         }
 
-        api.createWebhook(eventName, url, coreID,
-            data.requestType, data.headers, data.json, data.query, data.auth, data.mydevices
-        );
+		//TODO: clean this up more?
+		data.event = eventName;
+		data.url = url;
+		data.deviceid = coreID;
+		data.access_token = api._access_token;
+		data.requestType = requestType;
+
+		api.createWebhookWithObj(data);
+
         return 0;
     },
 
