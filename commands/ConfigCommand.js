@@ -24,7 +24,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this program; if not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************
  */
- 
+
 var when = require('when');
 var sequence = require('when/sequence');
 var readline = require('readline');
@@ -35,6 +35,7 @@ var extend = require('xtend');
 var util = require('util');
 var BaseCommand = require("./BaseCommand.js");
 var fs = require('fs');
+var prompts = require('../lib/prompts.js');
 var utilities = require('../lib/utilities.js');
 
 var ConfigCommand = function (cli, options) {
@@ -96,46 +97,68 @@ ConfigCommand.prototype = extend(BaseCommand.prototype, {
 	},
 
 	switchGroup: function (group) {
+    profiles = this.getProfiles()
 		//default group is spark
 		if (!group) {
 			group = "spark";
 		}
 
-		settings.switchProfile(group);
+    //Check that profiles exists, otherwise prompt to create an empty one
+    if(profiles.indexOf(group) >= 0){
+      settings.switchProfile(group);
+      console.log("You are now switched to: " + group);
+    }
+    else{
+      var line = "Hey cool! The profile " + group + " doesn't exist yet, create an empty one? [Y/n]";
+      prompts.askYesNoQuestion(line, true);
+      //Check for prompt response
+      //Create a new empty profile_name.json file
+    }
 	},
 
 	changeSetting: function (group, name, value) {
 		settings.override(group, name, value);
 	},
-	
+
 	identifyServer: function () {
 		console.log("Current profile: " + settings.profile);
 		console.log("Using API: " + settings.apiUrl);
 		console.log("Access token: " +  settings.access_token);
 	},
 
-	listConfigs: function() {
-		var sparkDir = settings.ensureFolder();
+  getProfiles: function(){
+    var profiles = [];
+    var sparkDir = settings.ensureFolder();
 		var files = utilities.globList(null, [
 			path.join(sparkDir, "*.config.json")
 		]);
 
-		if (files.length > 0) {
-			console.log("Available config files: ");
+    if (files.length > 0) {
+
 			for (var i = 0; i < files.length; i++) {
 
 				//strip the path
 				var filename = path.basename(files[i]);
-
 				//strip the extension
 				var name = filename.replace(".config.json", "");
-
-				console.log((i + 1) + ".) " + name);
+        profiles.push(name);
 			}
+
 		}
-		else {
-			console.log("No configuration files found.");
-		}
+    return profiles;
+  },
+
+	listConfigs: function() {
+    profiles = this.getProfiles()
+    if(profiles.length > 0){
+      console.log("Available config files: ");
+      for (var i = 0; i < profiles.length; i++) {
+        console.log((i + 1) + ".) " + profiles[i]);
+      }
+    }
+    else
+      console.log("No configuration files found.");
+
 	},
 
 	_: null
