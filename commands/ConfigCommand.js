@@ -104,16 +104,16 @@ ConfigCommand.prototype = extend(BaseCommand.prototype, {
 		}
 
     //Check that profiles exists, otherwise prompt to create an empty one
-    if(profiles.indexOf(group) >= 0){
-      settings.switchProfile(group);
-      console.log("You are now switched to: " + group);
-    }
-    else{
-      var line = "Hey cool! The profile " + group + " doesn't exist yet, create an empty one? [Y/n]";
-      prompts.askYesNoQuestion(line, true);
-      //Check for prompt response
-      //Create a new empty profile_name.json file
-    }
+		if(profiles.indexOf(group) >= 0){
+			settings.switchProfile(group);
+			console.log("You are now switched to: " + group);
+			}
+			else{
+				var line = "Hey cool! The profile " + group + " doesn't exist yet, create an empty one? [Y/n]";
+				prompts.askYesNoQuestion(line, true);
+				//Check for prompt response
+				//Create a new empty profile_name.json file
+			}
 	},
 
 	changeSetting: function (group, name, value) {
@@ -126,15 +126,14 @@ ConfigCommand.prototype = extend(BaseCommand.prototype, {
 		console.log("Access token: " +  settings.access_token);
 	},
 
-  getProfiles: function(){
-    var profiles = [];
-    var sparkDir = settings.ensureFolder();
+	getProfiles: function(){
+		var profiles = [];
+		var sparkDir = settings.ensureFolder();
 		var files = utilities.globList(null, [
 			path.join(sparkDir, "*.config.json")
 		]);
 
-    if (files.length > 0) {
-
+		if (files.length > 0) {
 			for (var i = 0; i < files.length; i++) {
 
 				//strip the path
@@ -149,15 +148,15 @@ ConfigCommand.prototype = extend(BaseCommand.prototype, {
   },
 
 	listConfigs: function() {
-    profiles = this.getProfiles()
-    if(profiles.length > 0){
-      console.log("Available config files: ");
-      for (var i = 0; i < profiles.length; i++) {
-        console.log((i + 1) + ".) " + profiles[i]);
-      }
-    }
-    else
-      console.log("No configuration files found.");
+		profiles = this.getProfiles()
+		if(profiles.length > 0){
+			console.log("Available config files: ");
+			for (var i = 0; i < profiles.length; i++) {
+				console.log((i + 1) + ".) " + profiles[i]);
+				}
+		}
+		else
+			console.log("No configuration files found.");
 
 	},
 
