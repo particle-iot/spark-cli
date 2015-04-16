@@ -109,10 +109,18 @@ ConfigCommand.prototype = extend(BaseCommand.prototype, {
 			console.log("You are now switched to: " + group);
 			}
 			else{
-				var line = "Hey cool! The profile " + group + " doesn't exist yet, create an empty one? [Y/n]";
-				prompts.askYesNoQuestion(line, true);
-				//Check for prompt response
-				//Create a new empty profile_name.json file
+				var line = "Hey cool! The profile " + group + " doesn't exist yet, create an empty one? [Y/n]  ";
+				var response = prompts.askYesNoQuestion(line, false);
+
+				when(response).then(function(saidYes){
+						//Create a new empty profile_name.json file
+						this.changeSetting(null, group, name);
+						process.exit(0);
+					},
+					function (err) {
+						process.exit(0);
+					});
+
 			}
 	},
 
