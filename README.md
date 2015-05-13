@@ -1,4 +1,8 @@
-Spark CLI
+# We have news! Spark has rebranded as Particle. [Learn More](http://blog.particle.io/2015/05/13/spark-is-now-particle/)
+
+## __spark-cli__ is now deprecated. [particle-cli](https://github.com/spark/particle-cli) is now the go-to CLI tool. Install it now by running `npm install -g particle-cli`
+
+Spark CLI (deprecated)
 ==========
 
 The Spark CLI is a powerful tool for interacting with your devices and the Spark Cloud.  The CLI uses [node.js](http://nodejs.org/) and can run on Windows, Mac OS X, and Linux fairly easily.  It's also [open source](https://github.com/spark/spark-cli) so you can edit and change it, and even send in your changes as [pull requests](https://help.github.com/articles/using-pull-requests) if you want to share!
