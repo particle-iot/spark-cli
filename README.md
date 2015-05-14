@@ -1,22 +1,26 @@
-Spark CLI
+# We have news! Spark has rebranded as Particle. [Learn More](http://blog.particle.io/2015/05/13/spark-is-now-particle/)
+
+## __spark-cli__ is now deprecated. [particle-cli](https://github.com/spark/particle-cli) is now the go-to CLI tool. Install it now by running `npm install -g particle-cli`
+
+Spark CLI (deprecated)
 ==========
 
-The Spark CLI is a powerful tool for interacting with your cores and the Spark Cloud.  The CLI uses [node.js](http://nodejs.org/) and can run on Windows, Mac OS X, and Linux fairly easily.  It's also [open source](https://github.com/spark/spark-cli) so you can edit and change it, and even send in your changes as [pull requests](https://help.github.com/articles/using-pull-requests) if you want to share!
+The Spark CLI is a powerful tool for interacting with your devices and the Spark Cloud.  The CLI uses [node.js](http://nodejs.org/) and can run on Windows, Mac OS X, and Linux fairly easily.  It's also [open source](https://github.com/spark/spark-cli) so you can edit and change it, and even send in your changes as [pull requests](https://help.github.com/articles/using-pull-requests) if you want to share!
 
 Installing
 =======
 
-  First, make sure you have [node.js](http://nodejs.org/) installed!  
+  First, make sure you have [node.js](http://nodejs.org/) installed!
 
   Next, open a command prompt or terminal, and install by typing:
 
-```sh 
+```sh
 $ npm install -g spark-cli
 $ spark cloud login
 ```
 
   *Note!*  If you have problems running this, make sure you using Terminal / the Command Prompt as an Administator, or try using `sudo`
-  
+
 ```sh
 $ sudo npm install -g spark-cli
 ```
@@ -25,7 +29,7 @@ $ sudo npm install -g spark-cli
 Install (advanced)
 ---------------------------
 
-To use the local flash and key features you'll need to install [dfu-util](http://dfu-util.sourceforge.net/) (note the normal main page http://dfu-util.gnumonks.org/ is still down), and [openssl](http://www.openssl.org/).  They are freely available and open-source, and there are installers and binaries for most major platforms as well.  
+To use the local flash and key features you'll need to install [dfu-util](http://dfu-util.sourceforge.net/) (note the normal main page http://dfu-util.gnumonks.org/ is still down), and [openssl](http://www.openssl.org/).  They are freely available and open-source, and there are installers and binaries for most major platforms as well.
 
 Here are some great tutorials on the community for full installs:
 
@@ -33,7 +37,7 @@ Here are some great tutorials on the community for full installs:
 
 [Installing on Windows](https://community.spark.io/t/tutorial-spark-cli-on-windows-06-may-2014/3112)
 
-#### Installing on Mac OS X: 
+#### Installing on Mac OS X:
 Rather than installing these packages from source, and instead of using MacPorts, it is relatively straightforward to use [Homebrew](http://brew.sh) to install `dfu-util`, `openssl`, and `libusb` (required for dfu-util). Once you have installed `brew` the basic command for each is `brew install dfu-util` . For the final step of `openssl` you will need to do `sudo brew install openssl` and enter your admin password.
 
 Upgrading
@@ -60,12 +64,12 @@ node app.js help
 Getting Started
 ===============
 
-  These next two commands are all you need to get started setting up an account, claiming a core, and discovering new features.
+  These next two commands are all you need to get started setting up an account, claiming a device, and discovering new features.
 
 
 ###spark setup
 
-  Guides you through creating a new account, and claiming your core!
+  Guides you through creating a new account, and claiming your device!
 
 ```sh
 $ spark setup
@@ -75,10 +79,10 @@ $ spark setup
 ###spark help
 
   Shows you what commands are available, and how to use them.  You can also give the name of a command for detailed help.
-  
+
 ```sh
 $ spark help
-$ spark help keys 
+$ spark help keys
 ```
 
 Apply the CC3000 patch
@@ -123,7 +127,7 @@ Command Reference
 
 ###spark setup wifi
 
-  Helpful shortcut for adding another wifi network to a core connected over USB.  Make sure your core is connected via a USB cable, and is slow blinking blue [listening mode](http://docs.spark.io/#/connect)
+  Helpful shortcut for adding another wifi network to a device connected over USB.  Make sure your device is connected via a USB cable, and is slow blinking blue [listening mode](http://docs.spark.io/#/connect)
 
 ```sh
 $ spark setup wifi
@@ -150,14 +154,14 @@ $ spark logout
 
 ###spark list
 
-  Generates a list of what cores you own, and displays information about their status, including what variables and functions are available
+  Generates a list of what devices you own, and displays information about their status, including what variables and functions are available
 
 ```sh
 $ spark list
 
 Checking with the cloud...
-Retrieving cores... (this might take a few seconds)
-my_core_name (0123456789ABCDEFGHI) 0 variables, and 4 functions
+Retrieving devices... (this might take a few seconds)
+my_device_name (0123456789ABCDEFGHI) 0 variables, and 4 functions
   Functions:
     int digitalwrite(string)
     int digitalread(string)
@@ -171,10 +175,10 @@ my_core_name (0123456789ABCDEFGHI) 0 variables, and 4 functions
 
   Adds a new core to your account
 
-```sh 
+```sh
 $ spark cloud claim 0123456789ABCDEFGHI
-Claiming core 0123456789ABCDEFGHI
-Successfully claimed core 0123456789ABCDEFGHI
+Claiming device 0123456789ABCDEFGHI
+Successfully claimed device 0123456789ABCDEFGHI
 ```
 
 
@@ -195,7 +199,7 @@ $ spark core rename 0123456789ABCDEFGHI "pirate frosting"
 ```sh
 $ spark core remove 0123456789ABCDEFGHI
 Are you sure?  Please Type yes to continue: yes
-releasing core 0123456789ABCDEFGHI
+releasing device 0123456789ABCDEFGHI
 server said  { ok: true }
 Okay!
 ```
@@ -203,7 +207,7 @@ Okay!
 
 ###spark flash
 
-  Sends a firmware binary, a source file, or a directory of source files, or a known app to your core.
+  Sends a firmware binary, a source file, or a directory of source files, or a known app to your device.
 
   Note!  When sending source code, the cloud compiles ```.ino``` and ```.cpp``` files differently.  For ```.ino``` files, the cloud will apply a pre-processor.  It will add missing function declarations, and it will inject an ```#include "
   application.h"``` line at the top of your files if it is missing.
@@ -240,7 +244,7 @@ $ spark flash 0123456789ABCDEFGHI app.ino library1.cpp library1.h
 
 ####Flashing a known app
 
-  You can easily reset a core back to a previous existing app with a quick command. Three app names are reserved right now: "tinker", "voodoo", and "cc3000".  Tinker is the original firmware that ships with the core, and cc3000 will patch the wifi module on your Core. Voodoo is a build of [VoodooSpark](http://voodoospark.me/) to allow local wireless firmata control of a core.
+  You can easily reset a device back to a previous existing app with a quick command. Three app names are reserved right now: "tinker", "voodoo", and "cc3000".  Tinker is the original firmware that ships with the device, and cc3000 will patch the wifi module on your Core. Voodoo is a build of [VoodooSpark](http://voodoospark.me/) to allow local wireless firmata control of a device.
 
 ```sh
 $ spark flash 0123456789ABCDEFGHI tinker
@@ -259,7 +263,7 @@ $ spark flash --usb tinker
 
 ####Compiling remotely and Flashing locally
 
-To work locally, but use the cloud compiler, simply use the compile command, and then the local flash command after.  Make sure you connect your core via USB and place it into [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).
+To work locally, but use the cloud compiler, simply use the compile command, and then the local flash command after.  Make sure you connect your device via USB and place it into [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).
 
 ```sh
 $ spark compile my_project_folder --saveTo firmware.bin
@@ -323,7 +327,7 @@ $ spark compile app.ino library1.cpp library1.h
 ####Compiling in a directory containing project files
 
  This will push all the files in a directory that the command line is currently 'cd' in for compilation.
- 
+
  ```sh
  $ spark compile .
  ```
@@ -333,7 +337,7 @@ $ spark compile app.ino library1.cpp library1.h
 
 ###spark call
 
-  Calls a function on one of your cores, use ```spark list``` to see which cores are online, and what functions are available.
+  Calls a function on one of your devices, use ```spark list``` to see which devices are online, and what functions are available.
 
 ```sh
 $ spark call 0123456789ABCDEFGHI digitalwrite "D7,HIGH"
@@ -343,7 +347,7 @@ $ spark call 0123456789ABCDEFGHI digitalwrite "D7,HIGH"
 
 ###spark get
 
-  Retrieves a variable value from one of your cores, use ```spark list``` to see which cores are online, and what variables are available.
+  Retrieves a variable value from one of your devices, use ```spark list``` to see which devices are online, and what variables are available.
 
 ```sh
 $ spark get 0123456789ABCDEFGHI temperature
@@ -355,7 +359,7 @@ $ spark get 0123456789ABCDEFGHI temperature
 ###spark monitor
 
   Pulls the value of a variable at a set interval, and optionally display a timestamp
-  
+
   * Minimum delay for now is 500 (there is a check anyway if you keyed anything less)
   * hitting ```CTRL + C``` in the console will exit the monitoring
 
@@ -370,7 +374,7 @@ $ spark monitor all temperature 5000 --time > my_temperatures.csv
 
 ###spark identify
 
-  Retrieves your core id when the core is connected via USB and in listening mode (flashing blue).
+  Retrieves your device id when the device is connected via USB and in listening mode (flashing blue).
 
 ```sh
 $ spark identify
@@ -384,15 +388,15 @@ $ spark identify
 
 ###spark subscribe
 
-  Subscribes to published events on the cloud, and pipes them to the console.  Special core name "mine" will subscribe to events from just your cores.
+  Subscribes to published events on the cloud, and pipes them to the console.  Special device name "mine" will subscribe to events from just your cores.
 
 
-```sh 
+```sh
 $ spark subscribe
 $ spark subscribe mine
 $ spark subscribe eventName
 $ spark subscribe eventName mine
-$ spark subscribe eventName CoreName
+$ spark subscribe eventName deviceName
 $ spark subscribe eventName 0123456789ABCDEFGHI
 ```
 
@@ -401,7 +405,7 @@ $ spark subscribe eventName 0123456789ABCDEFGHI
 
 ###spark serial list
 
-  Shows currently connected Spark Core's acting as serial devices over USB
+  Shows currently connected devices acting as serial devices over USB
 
 ```sh
 $ spark serial list
@@ -422,9 +426,9 @@ $ spark serial monitor /dev/cu.usbmodem12345
 
 ###spark keys doctor
 
-Helps you update your keys, or recover your core when the keys on the server are out of sync with the keys on your core.  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.
+Helps you update your keys, or recover your device when the keys on the server are out of sync with the keys on your device.  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.
 
-Connect your core in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade), and run this command to replace the unique cryptographic keys on your core.  Automatically attempts to send the new public key to the cloud as well.
+Connect your device in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade), and run this command to replace the unique cryptographic keys on your device.  Automatically attempts to send the new public key to the cloud as well.
 
 ```sh
 $ spark keys doctor 0123456789ABCDEFGHI
@@ -434,13 +438,13 @@ There have been reports of the new public key not being sent to the cloud, in wh
 
 ###spark keys new
 
-Generates a new public / private keypair that can be used on a core.
+Generates a new public / private keypair that can be used on a device.
 
 ```sh
 $ spark keys new
-running openssl genrsa -out core.pem 1024
-running openssl rsa -in core.pem -pubout -out core.pub.pem
-running openssl rsa -in core.pem -outform DER -out core.der
+running openssl genrsa -out device.pem 1024
+running openssl rsa -in device.pem -pubout -out device.pub.pem
+running openssl rsa -in device.pem -outform DER -out device.der
 New Key Created!
 
 $ spark keys new mykey
@@ -452,48 +456,46 @@ New Key Created!
 
 ###spark keys load
 
-Copies a ```.DER``` formatted private key onto your core's external flash.  Make sure your core is connected and in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.  Make sure any key you load is sent to the cloud with ```spark keys send core.pub.pem```
+Copies a ```.DER``` formatted private key onto your device's external flash.  Make sure your device is connected and in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.  Make sure any key you load is sent to the cloud with ```spark keys send device.pub.pem```
 
 ```sh
-$ spark keys load core.der
+$ spark keys load device.der
 ...
 Saved!
 ```
 
 ###spark keys save
 
-Copies a ```.DER``` formatted private key from your core's external flash to your computer.  Make sure your core is connected and in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.
+Copies a ```.DER``` formatted private key from your device's external flash to your computer.  Make sure your device is connected and in [dfu mode](http://docs.spark.io/#/connect/appendix-dfu-mode-device-firmware-upgrade).  The ```spark keys``` tools requires both dfu-util, and openssl to be installed.
 
 ```sh
-$ spark keys save core.der
+$ spark keys save device.der
 ...
 Saved!
 ```
 
 ###spark keys send
 
-Sends a core's public key to the cloud for use in opening an encrypted session with your core.  Please make sure your core has the corresponding private key loaded using the ```spark keys load``` command.
+Sends a device's public key to the cloud for use in opening an encrypted session with your device.  Please make sure your device has the corresponding private key loaded using the ```spark keys load``` command.
 
 ```sh
-$ spark keys send 0123456789ABCDEFGHI core.pub.pem
+$ spark keys send 0123456789ABCDEFGHI device.pub.pem
 submitting public key succeeded!
 ```
 
 ###spark keys server
 
-Switches the server public key stored on the core's external flash.  This command is important when changing which server your core is connecting to, and the server public key helps protect your connection.   Your core will stay in DFU mode after this command, so that you can load new firmware to connect to your server.
-
-
+Switches the server public key stored on the device's external flash.  This command is important when changing which server your device is connecting to, and the server public key helps protect your connection.   Your device will stay in DFU mode after this command, so that you can load new firmware to connect to your server.
 
 ```sh
 $ spark keys server my_server.der
-Okay!  New keys in place, your core will not restart.
+Okay!  New keys in place, your device will not restart.
 ```
 
 
 ###spark keys server ip_address
 
-When using the local cloud you can ask the CLI to encode the IP or dns address into your key to control where your core will connect.
+When using the local cloud you can ask the CLI to encode the IP or dns address into your key to control where your device will connect.
 
 ```sh
 $ spark keys server my_server.pub.pem 192.168.1.10
