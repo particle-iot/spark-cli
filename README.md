@@ -2,6 +2,12 @@
 
 ## __spark-cli__ is now deprecated. [particle-cli](https://github.com/spark/particle-cli) is now the go-to CLI tool. Install it now by running `npm install -g particle-cli`
 
+Known Issues
+==========
+
+* Version 1.4.0 of Spark CLI includes Photon setup support for OS X only at the moment. Windows and Linux support are imminent.
+* Wireless setup of Photons on OS X will trigger several 'networksetup' dialogs which prompt you to enter your system password. This is due to the fact that the CLI is now automagically managing Wi-Fi connections for a more 'wizard-like' setup experience. A manual mode will be introduced shortly for those that would rather perform setup steps themselves.
+
 Spark CLI (deprecated)
 ==========
 
