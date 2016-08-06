@@ -92,8 +92,7 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
         this.addOption("create", this.createHook.bind(this), "Creates a postback to the given url when your event is sent");
         this.addOption("list", this.listHooks.bind(this), "Show your current Webhooks");
         this.addOption("delete", this.deleteHook.bind(this), "Deletes a Webhook");
-		
-	    this.addOption("POST", this.createPOSTHook.bind(this), "Create a new POST request hook");
+        this.addOption("POST", this.createPOSTHook.bind(this), "Create a new POST request hook");
         this.addOption("GET", this.createGETHook.bind(this), "Create a new GET request hook");
     },
 
@@ -104,13 +103,18 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
     createGETHook: function(eventName, url, coreID) {
         return this.createHook(eventName, url, coreID, "GET");
     },
-
+    
+    //Webhook commands
+    //spark webhook create xxxx.json
+    //spark webhook GET <your_event_name> http://<website.you.are.trying.to.contact>  <core_id>
+    //spark webhook POST <your_event_name> http://<website.you.are.trying.to.contact> <core_id>
     createHook: function (eventName, url, coreID, requestType) {
         var api = new ApiClient(settings.apiUrl, settings.access_token);
         if (!api.ready()) {
             return -1;
         }
 
+        //Nothing was passed in except `spark webhook create`
         if (!eventName && !url && !coreID && !requestType) {
             var help = this.cli.getCommandModule("help");
             return help.helpCommand(this.name, "create");
@@ -118,8 +122,9 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
 
         //if they gave us one thing, and it happens to be a file, and we could parse it as json
         var data = {};
-        if (eventName && !url && !coreID) {
 
+        //spark webhook create xxx.json
+        if (eventName && !url && !coreID) {
             //
             // for clarity
             //
@@ -127,34 +132,33 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
             if (fs.existsSync(filename)) {
                 data = utilities.tryParse(fs.readFileSync(filename)) || {};
                 console.log("Using settings from the file " + filename);
+
+                data.access_token = api._access_token;
+                api.createWebhookWithObj(data);
+                return 0;
             }
-
-            //only override these when we didn't get them from the command line
-            eventName = data.eventName;
-            url = data.url;
-            coreID = data.coreID;
         }
-
+        
         //required param
         if (!eventName || (eventName == "")) {
             console.log("Please specify an event name");
             return -1;
         }
-
+        
         //required param
         if (!url || (url == "")) {
             console.log("Please specify a url");
             return -1;
         }
-
-		//TODO: clean this up more?
-		data.event = eventName;
-		data.url = url;
-		data.deviceid = coreID;
-		data.access_token = api._access_token;
-		data.requestType = requestType;
-
-		api.createWebhookWithObj(data);
+        
+        //Setting all from command-line for GET/POST
+        data.event = eventName;
+        data.url = url;
+        data.deviceid = coreID;
+        data.requestType = requestType;
+        data.access_token = api._access_token;
+        
+        api.createWebhookWithObj(data);
 
         return 0;
     },
