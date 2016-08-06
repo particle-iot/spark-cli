@@ -187,7 +187,7 @@ WebhookCommand.prototype = extend(BaseCommand.prototype, {
                     var hook = hooks[i];
                     var line = [
                         "    ", (i+1),
-                        ".) Hook #" + hook.id + " is watching for ",
+                        ".) Hook id " + hook.id + " is watching for ",
                         "\""+hook.event+"\"",
 
                         "\n       ", " and posting to: " + hook.url,
