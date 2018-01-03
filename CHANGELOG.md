@@ -88,7 +88,7 @@ changelog
 03/02/2014 - 0.2.9 - Merged in pull request for #6, and #14, fixed #3, #9, and #10,
 
   Also removed hard dependency on ursa so the build / install is easier.
-  (Issues are listed here: https://github.com/spark/spark-cli/issues?state=open )
+  (Issues are listed here: https://github.com/particle-iot/spark-cli/issues?state=open )
 
 02/21/2014 - 0.2.8 - Adding cloud list
 02/21/2014 - 0.2.7 - Adding local dfu flash
@@ -102,7 +102,7 @@ Initial Release! - 02/20/2014
   There will be bugs, and I hope you'll help us find them and add suggestions along the way.
 
 
-* Please feel free to submit issues, pull requests, comments, suggestions, and more at the repository https://github.com/spark/spark-cli
+* Please feel free to submit issues, pull requests, comments, suggestions, and more at the repository https://github.com/particle-iot/spark-cli
 * You can find documentation on Spark here: http://docs.spark.io/
 * You can post and find answers on the forums here: http://community.spark.io/
 * Or you can find us on IRC at freenode #spark

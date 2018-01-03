@@ -5,7 +5,7 @@
   "author": "David Middlecamp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/spark/spark-cli"
+    "url": "https://github.com/particle-iot/spark-cli"
   },
   "bin": {
     "spark": "./bin/spark.js"
@@ -16,12 +16,12 @@
   },
   "dependencies": {
     "chalk": "^1.0.0",
-    "cli-spinner": "git+https://github.com/spark/node-spinner.git",
+    "cli-spinner": "git+https://github.com/particle-iot/node-spinner.git",
     "glob": "^4.2.1",
     "hogan.js": "^2.0.0",
     "inquirer": "^0.8.2",
     "moment": "^2.9.0",
-    "node-wifiscanner": "git+https://github.com/spark/node-wifiscanner.git",
+    "node-wifiscanner": "git+https://github.com/particle-iot/node-wifiscanner.git",
     "request": "^2.46.0",
     "serialport": "^1.5.0",
     "softap-setup": "^1.1.4",

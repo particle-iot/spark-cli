@@ -3,7 +3,7 @@
  * @file    commands/HelpCommand.js
  * @author  David Middlecamp (david@spark.io)
  * @company Spark ( https://www.spark.io/ )
- * @source https://github.com/spark/spark-cli
+ * @source https://github.com/particle-iot/spark-cli
  * @version V1.0.0
  * @date    14-February-2014
  * @brief   CLI Help module
@@ -208,7 +208,7 @@ HelpCommand.prototype = extend(BaseCommand.prototype, {
 		var lines = [
 			"",
 			"Welcome to the Spark Command line utility!",
-			"https://github.com/spark/spark-cli",
+			"https://github.com/particle-iot/spark-cli",
 			""
 		];
 

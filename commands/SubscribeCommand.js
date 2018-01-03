@@ -3,7 +3,7 @@
  * @file    commands/SubscribeCommand.js
  * @author  David Middlecamp (david@spark.io)
  * @company Spark ( https://www.spark.io/ )
- * @source https://github.com/spark/spark-cli
+ * @source https://github.com/particle-iot/spark-cli
  * @version V1.0.0
  * @date    14-February-2014
  * @brief   Subscribe commands module
